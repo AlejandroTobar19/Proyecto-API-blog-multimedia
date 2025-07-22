@@ -19,7 +19,7 @@ export class User {
   @Column()
   password: string;
 
-  @Column({ default: 'lector' }) // lector | autor | admin
+  @Column() // lector | autor | admin
   role: string;
 
   @OneToMany(() => Post, (post) => post.author)
@@ -27,6 +27,8 @@ export class User {
 
   @OneToMany(() => Comment, (comment) => comment.author)
   comments: Comment[];
+
+  
 
 
 

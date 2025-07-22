@@ -92,9 +92,10 @@ export class PostsService {
 
         if (!post) throw new NotFoundException('Post no encontrado');
 
-        if (post.author.id !== user.id) {
+        if (post.author.id !== user.id && user.role !== 'admin') {
             throw new UnauthorizedException('No tienes permiso para editar este post');
         }
+
 
         // 🔄 Guardar versión previa en historial
         const postHistory = this.historyRepo.create({
@@ -164,6 +165,7 @@ export class PostsService {
             .leftJoin('post.tags', 'tag')
             .select('tag.name', 'name')
             .addSelect('COUNT(*)', 'count')
+            .where('tag.name IS NOT NULL') // 🔧 FILTRO
             .groupBy('tag.name')
             .orderBy('count', 'DESC')
             .limit(5)
@@ -171,5 +173,77 @@ export class PostsService {
 
         return result;
     }
+
+
+    async addTags(postId: number, tagNames: string[], user: User) {
+        const post = await this.postRepo.findOne({
+            where: { id: postId },
+            relations: ['author', 'tags'],
+        });
+
+        if (!post) throw new NotFoundException('Post no encontrado');
+
+        if (post.author.id !== user.id && user.role !== 'admin') {
+            throw new UnauthorizedException('No tienes permiso para editar este post');
+        }
+
+        const tagsToAdd: Tag[] = [];
+
+        for (const name of tagNames) {
+            const normalized = name.trim().toLowerCase();
+            if (!normalized) continue; // ⛔️ Salta vacíos
+
+            let tag = await this.tagRepo.findOne({ where: { name: normalized } });
+
+            if (!tag) {
+                tag = this.tagRepo.create({ name: normalized });
+                await this.tagRepo.save(tag);
+            }
+
+            tagsToAdd.push(tag);
+        }
+
+
+
+        post.tags = Array.from(new Set([...post.tags, ...tagsToAdd]));
+
+        return this.postRepo.save(post);
+    }
+
+
+    async findOne(id: number) {
+        const post = await this.postRepo.findOne({
+            where: { id },
+            relations: ['author', 'category', 'tags', 'comments'],
+        });
+
+        if (!post) throw new NotFoundException('Post no encontrado');
+
+        // Incrementar contador de vistas
+        post.views += 1;
+        await this.postRepo.save(post);
+
+        return post;
+    }
+
+    async getMostViewed(limit: number = 10) {
+        const posts = await this.postRepo.find({
+            order: { views: 'DESC' },
+            take: limit,
+            relations: ['author', 'category', 'tags', 'comments'],
+        });
+
+        return posts;
+    }
+
+    async getMostViewedPosts(): Promise<Post[]> {
+        return this.postRepo.find({
+            order: {
+                views: 'DESC',
+            },
+            take: 5, // Cambia el número si quieres más o menos resultados
+        });
+    }
+
 
 }

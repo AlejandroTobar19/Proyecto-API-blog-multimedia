@@ -1,33 +1,42 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+    Column,
+    Entity,
+    ManyToOne,
+    JoinTable,
+    ManyToMany,
+    OneToMany,
+} from 'typeorm';
+import { BaseEntity } from '../../config/base.entity';
 import { User } from '../../users/entity/user.entity';
 import { Post } from '../../posts/entity/post.entity';
+import { Tag } from '../../tags/entity/tag.entity';
+import { CommentHistory } from './comment-history.entity';
 
 @Entity()
-export class Comment {
-    @PrimaryGeneratedColumn()
-    id: number;
-
+export class Comment extends BaseEntity {
     @Column()
     content: string;
 
-    @ManyToOne(() => User, (user) => user.comments, {
-        eager: true,
-        nullable: false,
-    })
+    @ManyToOne(() => User, (user) => user.comments)
     author: User;
 
-
-    @ManyToOne(() => Post, post => post.comments)
+    @ManyToOne(() => Post, (post) => post.comments, { onDelete: 'CASCADE' })
     post: Post;
 
-    @CreateDateColumn()
-    createdAt: Date;
-
-    @UpdateDateColumn()
-    updatedAt: Date;
+    @Column({ default: false })
+    isModerated: boolean;
 
     @Column({ default: 'pendiente' })
-    status: 'pendiente' | 'aprobado' | 'rechazado';
+    status: string;
 
+    @ManyToMany(() => Tag, (tag) => tag.comments, {
+        cascade: true,
+        eager: true,
+    })
+    @JoinTable()
+    tags: Tag[];
 
+    @OneToMany(() => CommentHistory, (history) => history.comment, { 
+    })
+    histories: CommentHistory[];
 }

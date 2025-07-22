@@ -16,6 +16,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Request } from '@nestjs/common';
 import { ParseIntPipe } from '@nestjs/common';
+import { Query } from '@nestjs/common';
+import { Post } from './entity/post.entity';
+
 
 
 
@@ -24,10 +27,17 @@ export class PostsController {
     constructor(private readonly postsService: PostsService) { }
 
     @UseGuards(JwtAuthGuard)
-    @HttpPost()
-    create(@Body() dto: CreatePostDto, @Req() req) {
-        return this.postsService.create(dto, req.user);
+    @HttpPost(':id/tags')
+    @UseGuards(JwtAuthGuard)
+    addTagsToPost(
+        @Param('id', ParseIntPipe) postId: number,
+        @Body() body: { tags: string[] },
+        @Req() req
+    ) {
+        return this.postsService.addTags(postId, body.tags, req.user);
     }
+
+
 
     @Get()
     findAll() {
@@ -35,9 +45,10 @@ export class PostsController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.postsService.findById(+id);
+    getPost(@Param('id') id: string) {
+        return this.postsService.findOne(+id);
     }
+
 
     @UseGuards(JwtAuthGuard)
     @Patch(':id')
@@ -67,5 +78,21 @@ export class PostsController {
         return this.postsService.getMostUsedTags();
     }
 
+    @Get('ranking/most-viewed')
+    getMostViewed(@Query('limit') limit?: string) {
+        const parsedLimit = limit ? parseInt(limit) : 10;
+        return this.postsService.getMostViewed(parsedLimit);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @HttpPost()
+    create(@Body() dto: CreatePostDto, @Req() req) {
+        return this.postsService.create(dto, req.user);
+    }
+
+    @Get('report/most-viewed')
+    async getMostViewedPosts(): Promise<Post[]> {
+        return this.postsService.getMostViewedPosts();
+    }
 
 }

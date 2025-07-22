@@ -1,18 +1,29 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { Category } from './entity/category.entity';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UnauthorizedException } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
+import { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
+
+
 
 @ApiTags('Categories')
 @Controller('categories')
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) {}
+  constructor(private readonly categoriesService: CategoriesService) { }
 
   @Post()
-  @ApiOperation({ summary: 'Crear nueva categoría' })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Crear nueva categoría (solo admin)' })
   @ApiResponse({ status: 201, description: 'Categoría creada', type: Category })
-  create(@Body() dto: CreateCategoryDto) {
+  create(@Body() dto: CreateCategoryDto, @Req() req: RequestWithUser) {
+    const user = req.user;
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Solo los administradores pueden crear categorías');
+    }
     return this.categoriesService.create(dto);
   }
 
