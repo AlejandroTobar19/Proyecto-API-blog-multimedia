@@ -28,13 +28,10 @@ import { Comment } from './entities/comment.entity';
 import { Comment as CommentEntity } from './entities/comment.entity';
 import { Response } from 'express';
 import { PdfService } from '../reports/pdf.service'; // asegurate de la ruta correcta
+import { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 
 
 
-
-interface AuthenticatedRequest extends Request {
-  user: User;
-}
 
 @Controller('comments')
 export class CommentsController {
@@ -45,7 +42,7 @@ export class CommentsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateCommentDto, @Req() req: AuthenticatedRequest) {
+  create(@Body() dto: CreateCommentDto, @Req() req: RequestWithUser) {
     return this.commentsService.create(dto, req.user);
   }
 
@@ -64,14 +61,14 @@ export class CommentsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateCommentDto,
-    @Req() req: AuthenticatedRequest,
+    @Req() req: RequestWithUser,
   ) {
     return this.commentsService.update(+id, dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+  remove(@Param('id') id: string, @Req() req: RequestWithUser) {
     return this.commentsService.remove(+id, req.user);
   }
 
@@ -102,19 +99,22 @@ export class CommentsController {
   assignTags(
     @Param('id') id: string,
     @Body() dto: AssignTagsDto,
-    @Req() req: AuthenticatedRequest,
+    @Req() req: RequestWithUser,
   ) {
     return this.commentsService.assignTags(+id, dto.tags, req.user);
   }
 
+    // DESPUÉS
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'autor') // 👈 ADMIN Y AUTOR
   @Patch(':id/status')
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ModerateCommentDto,
+    @Req() req: RequestWithUser, // 👈 Añade el decorador @Req
   ): Promise<Comment> {
-    return this.commentsService.updateStatus(id, dto.status);
+    // Pasa el usuario al servicio para la validación
+    return this.commentsService.updateStatus(id, dto.status, req.user);
   }
 
   @Get('report/pdf/:postId')

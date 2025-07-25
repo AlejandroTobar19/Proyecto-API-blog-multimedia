@@ -28,8 +28,10 @@ export class PostsService {
         @InjectRepository(ImagePost) private imagePostRepo: Repository<ImagePost>,
     ) {}
 
-    async create(dto: CreatePostDto, user: { userId: number }) {
-        const author = await this.userRepo.findOneBy({ id: user.userId });
+    // src/posts/posts.service.ts
+
+    async create(dto: CreatePostDto, user: User) { // 👈 Cambiamos el tipo a "User"
+        const author = await this.userRepo.findOneBy({ id: user.id }); // 👈 Usamos "user.id"
         if (!author) throw new NotFoundException('Autor no encontrado');
 
         let category: Category | undefined = undefined;
@@ -39,21 +41,21 @@ export class PostsService {
             category = found;
         }
 
-        let tags: Tag[] = [];
-        if (dto.tagIds && dto.tagIds.length > 0) {
-            tags = await this.tagRepo.find({
-                where: { id: In(dto.tagIds) },
+            let tags: Tag[] = [];
+            if (dto.tagIds && dto.tagIds.length > 0) {
+                tags = await this.tagRepo.find({
+                    where: { id: In(dto.tagIds) },
+                });
+            }   
+
+            const post = this.postRepo.create({
+                ...dto,
+                author,
+                ...(category && { category }),
+                tags,
             });
-        }
 
-        const post = this.postRepo.create({
-            ...dto,
-            author,
-            ...(category && { category }),
-            tags,
-        });
-
-        return this.postRepo.save(post);
+            return this.postRepo.save(post);
     }
 
     async saveImage(postId: number, filename: string) {

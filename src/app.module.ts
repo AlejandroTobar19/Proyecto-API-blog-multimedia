@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+//import { APP_GUARD } from '@nestjs/core'; // 👈 Importar APP_GUARD
+import { RolesGuard } from './auth/roles.guard'; // 👈 Importar el guard
 import { APP_GUARD } from '@nestjs/core'; 
-import { RolesGuard } from './auth/roles.guard'; 
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TagsModule } from './tags/tags.module';
 import { CommentsModule } from './comments/comments.module';
+import { LikesModule } from './likes/likes.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -29,12 +32,9 @@ import { CommentsModule } from './comments/comments.module';
     CategoriesModule,
     TagsModule,
     CommentsModule,
+    LikesModule,
+    SubscriptionsModule,
   ],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
-    },
-  ],
+  providers: [],
 })
 export class AppModule {}
