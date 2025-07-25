@@ -7,6 +7,7 @@ import { Category } from '../categories/entity/category.entity';
 import { Tag } from '../tags/entity/tag.entity';
 import { Comment } from '../comments/entities/comment.entity';
 import { PostHistory } from './entity/post-history.entity';
+import { ImagePost } from './entity/image-post.entity';
 
 describe('PostsService', () => {
   let service: PostsService;
@@ -21,6 +22,7 @@ describe('PostsService', () => {
         { provide: getRepositoryToken(Tag), useValue: {} },
         { provide: getRepositoryToken(Comment), useValue: {} },
         { provide: getRepositoryToken(PostHistory), useValue: {} },
+        { provide: getRepositoryToken(ImagePost), useValue: {} },
       ],
     }).compile();
 
