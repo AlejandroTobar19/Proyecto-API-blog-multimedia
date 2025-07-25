@@ -1,9 +1,8 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core'; // 👈 Importar APP_GUARD
-import { RolesGuard } from './auth/roles.guard'; // 👈 Importar el guard
+import { APP_GUARD } from '@nestjs/core'; 
+import { RolesGuard } from './auth/roles.guard'; 
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';

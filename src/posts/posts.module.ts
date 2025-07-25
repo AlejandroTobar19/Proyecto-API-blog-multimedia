@@ -8,12 +8,21 @@ import { Category } from '../categories/entity/category.entity';
 import { Tag } from '../tags/entity/tag.entity';
 import { Comment } from '../comments/entities/comment.entity';
 import { PostHistory } from './entity/post-history.entity';
+import { ImagePost } from './entity/image-post.entity'; 
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Post, PostHistory, User, Category, Tag, Comment]) // 👈 agrega Comment aquí
+    TypeOrmModule.forFeature([
+      Post,
+      PostHistory,
+      User,
+      Category,
+      Tag,
+      Comment,
+      ImagePost, 
+    ]),
   ],
   controllers: [PostsController],
-  providers: [PostsService]
+  providers: [PostsService],
 })
 export class PostsModule {}
