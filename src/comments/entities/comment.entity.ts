@@ -11,6 +11,9 @@ import { User } from '../../users/entity/user.entity';
 import { Post } from '../../posts/entity/post.entity';
 import { Tag } from '../../tags/entity/tag.entity';
 import { CommentHistory } from './comment-history.entity';
+import { Like } from '../../likes/entity/like.entity'; 
+
+
 
 @Entity()
 export class Comment extends BaseEntity {
@@ -39,4 +42,7 @@ export class Comment extends BaseEntity {
     @OneToMany(() => CommentHistory, (history) => history.comment, { 
     })
     histories: CommentHistory[];
+
+      @OneToMany(() => Like, (like) => like.comment) 
+  likes: Like[];
 }

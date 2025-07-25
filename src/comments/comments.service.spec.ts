@@ -33,6 +33,9 @@ describe('CommentsService - assignTags', () => {
     role: 'admin',
     comments: [],
     posts: [],
+    likes: [],
+    following: [],
+    followers: []
   };
 
   beforeEach(async () => {

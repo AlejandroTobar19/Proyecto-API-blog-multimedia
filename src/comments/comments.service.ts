@@ -234,11 +234,30 @@ export class CommentsService {
     return this.commentRepo.save(comment);
   }
 
-  async updateStatus(id: number, status: string): Promise<Comment> {
-    const comment = await this.commentRepo.findOne({ where: { id } });
-    if (!comment) throw new NotFoundException('Comentario no encontrado');
+  // DESPUÉS
+  async updateStatus(id: number, status: string, user: User): Promise<Comment> {
+  // 1. Carga el comentario junto con la información del autor del post
+  const comment = await this.commentRepo.findOne({
+    where: { id },
+    relations: ['author', 'post', 'post.author'], // 👈 Relaciones clave
+  });
 
-    comment.status = status;
-    return this.commentRepo.save(comment);
+  if (!comment) {
+    throw new NotFoundException('Comentario no encontrado');
+  }
+
+  // 2. Lógica de autorización
+  const isOwner = comment.post.author.id === user.id;
+
+  // Si el usuario NO es admin Y NO es el dueño del post, denegar acceso
+  if (user.role !== 'admin' && !isOwner) {
+    throw new UnauthorizedException(
+      'No tienes permiso para moderar este comentario',
+    );
+  }
+
+  // 3. Si la autorización es exitosa, actualiza el estado
+  comment.status = status;
+  return this.commentRepo.save(comment);
   }
 }
