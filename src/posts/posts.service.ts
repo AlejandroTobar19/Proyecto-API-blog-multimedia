@@ -14,6 +14,7 @@ import { Tag } from '../tags/entity/tag.entity';
 import { Comment } from '../comments/entities/comment.entity';
 import { instanceToPlain } from 'class-transformer';
 import { PostHistory } from './entity/post-history.entity';
+import { ImagePost } from './entity/image-post.entity';
 
 @Injectable()
 export class PostsService {
@@ -24,7 +25,8 @@ export class PostsService {
         @InjectRepository(Tag) private tagRepo: Repository<Tag>,
         @InjectRepository(Comment) private commentRepo: Repository<Comment>,
         @InjectRepository(PostHistory) private readonly historyRepo: Repository<PostHistory>,
-    ) { }
+        @InjectRepository(ImagePost) private imagePostRepo: Repository<ImagePost>,
+    ) {}
 
     async create(dto: CreatePostDto, user: { userId: number }) {
         const author = await this.userRepo.findOneBy({ id: user.userId });
@@ -54,6 +56,18 @@ export class PostsService {
         return this.postRepo.save(post);
     }
 
+    async saveImage(postId: number, filename: string) {
+        const post = await this.postRepo.findOne({
+            where: { id: postId },
+            relations: ['images'],
+        });
+
+        if (!post) throw new NotFoundException('Post no encontrado');
+
+        const image = this.imagePostRepo.create({ url: filename, post });
+        return this.imagePostRepo.save(image);
+    }
+
     async findAll() {
         const posts = await this.postRepo.find({
             relations: ['author', 'tags', 'category'],
@@ -70,11 +84,10 @@ export class PostsService {
         if (!post) throw new NotFoundException('Post no encontrado');
 
         post.views++;
-        await this.postRepo.save(post); // 🔥 Guardamos incremento
+        await this.postRepo.save(post);
 
         return post;
     }
-
 
     async findByAuthor(authorId: number) {
         const posts = await this.postRepo.find({
@@ -96,8 +109,6 @@ export class PostsService {
             throw new UnauthorizedException('No tienes permiso para editar este post');
         }
 
-
-        // 🔄 Guardar versión previa en historial
         const postHistory = this.historyRepo.create({
             title: post.title,
             content: post.content,
@@ -105,21 +116,18 @@ export class PostsService {
         });
         await this.historyRepo.save(postHistory);
 
-        // ✅ Actualizar categoría si cambia
         if (dto.categoryId) {
             const category = await this.categoryRepo.findOneBy({ id: dto.categoryId });
             if (!category) throw new NotFoundException('Categoría no encontrada');
             post.category = category;
         }
 
-        // ✅ Actualizar tags si se envían
         if (dto.tagIds) {
             post.tags = dto.tagIds.length > 0
                 ? await this.tagRepo.find({ where: { id: In(dto.tagIds) } })
                 : [];
         }
 
-        // ✅ Actualizar los demás campos (title, content, etc.)
         this.postRepo.merge(post, dto);
         return this.postRepo.save(post);
     }
@@ -130,7 +138,6 @@ export class PostsService {
             order: { editedAt: 'DESC' },
         });
     }
-
 
     async remove(id: number, user: User) {
         const post = await this.postRepo.findOne({
@@ -165,7 +172,7 @@ export class PostsService {
             .leftJoin('post.tags', 'tag')
             .select('tag.name', 'name')
             .addSelect('COUNT(*)', 'count')
-            .where('tag.name IS NOT NULL') // 🔧 FILTRO
+            .where('tag.name IS NOT NULL')
             .groupBy('tag.name')
             .orderBy('count', 'DESC')
             .limit(5)
@@ -173,7 +180,6 @@ export class PostsService {
 
         return result;
     }
-
 
     async addTags(postId: number, tagNames: string[], user: User) {
         const post = await this.postRepo.findOne({
@@ -191,7 +197,7 @@ export class PostsService {
 
         for (const name of tagNames) {
             const normalized = name.trim().toLowerCase();
-            if (!normalized) continue; // ⛔️ Salta vacíos
+            if (!normalized) continue;
 
             let tag = await this.tagRepo.findOne({ where: { name: normalized } });
 
@@ -203,25 +209,26 @@ export class PostsService {
             tagsToAdd.push(tag);
         }
 
-
-
         post.tags = Array.from(new Set([...post.tags, ...tagsToAdd]));
 
         return this.postRepo.save(post);
     }
 
-
     async findOne(id: number) {
         const post = await this.postRepo.findOne({
             where: { id },
-            relations: ['author', 'category', 'tags', 'comments'],
+            relations: ['author', 'category', 'tags', 'comments', 'images'],
         });
 
         if (!post) throw new NotFoundException('Post no encontrado');
 
-        // Incrementar contador de vistas
         post.views += 1;
         await this.postRepo.save(post);
+
+        post.images = post.images.map((img) => ({
+            ...img,
+            url: `http://localhost:3000/uploads/${img.url}`,
+        }));
 
         return post;
     }
@@ -241,9 +248,7 @@ export class PostsService {
             order: {
                 views: 'DESC',
             },
-            take: 5, // Cambia el número si quieres más o menos resultados
+            take: 5,
         });
     }
-
-
 }

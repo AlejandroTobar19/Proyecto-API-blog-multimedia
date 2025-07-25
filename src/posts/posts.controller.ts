@@ -1,4 +1,4 @@
-// src/posts/posts.controller.ts
+import { File as MulterFile } from 'multer';
 import {
     Controller,
     Get,
@@ -9,6 +9,8 @@ import {
     Delete,
     UseGuards,
     Req,
+    UploadedFile,
+    UseInterceptors,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -18,9 +20,9 @@ import { Request } from '@nestjs/common';
 import { ParseIntPipe } from '@nestjs/common';
 import { Query } from '@nestjs/common';
 import { Post } from './entity/post.entity';
-
-
-
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @Controller('posts')
 export class PostsController {
@@ -28,7 +30,6 @@ export class PostsController {
 
     @UseGuards(JwtAuthGuard)
     @HttpPost(':id/tags')
-    @UseGuards(JwtAuthGuard)
     addTagsToPost(
         @Param('id', ParseIntPipe) postId: number,
         @Body() body: { tags: string[] },
@@ -36,8 +37,6 @@ export class PostsController {
     ) {
         return this.postsService.addTags(postId, body.tags, req.user);
     }
-
-
 
     @Get()
     findAll() {
@@ -49,13 +48,11 @@ export class PostsController {
         return this.postsService.findOne(+id);
     }
 
-
     @UseGuards(JwtAuthGuard)
     @Patch(':id')
     update(@Param('id') id: string, @Body() dto: UpdatePostDto, @Req() req) {
         return this.postsService.update(+id, dto, req.user);
     }
-
 
     @UseGuards(JwtAuthGuard)
     @Delete(':id')
@@ -95,4 +92,23 @@ export class PostsController {
         return this.postsService.getMostViewedPosts();
     }
 
+    @UseGuards(JwtAuthGuard)
+    @HttpPost(':postId/upload-image')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            storage: diskStorage({
+                destination: './uploads',
+                filename: (req, file, cb) => {
+                    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+                    cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
+                },
+            }),
+        }),
+    )
+    async uploadImage(
+        @Param('postId', ParseIntPipe) postId: number,
+        @UploadedFile() file: MulterFile,
+    ) {
+        return this.postsService.saveImage(postId, file.filename);
+    }
 }

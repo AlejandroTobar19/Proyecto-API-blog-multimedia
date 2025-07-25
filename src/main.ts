@@ -4,20 +4,30 @@ import { AppModule } from './app.module';
 import { useContainer } from 'class-validator';
 import { RolesGuard } from './auth/roles.guard';
 import { Reflector } from '@nestjs/core';
+import * as express from 'express';
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Permitir el uso de validaciones que dependen de inyección de dependencias
+  // Habilitar CORS por si más adelante usás un frontend
+  app.enableCors();
+
+  // Exponer carpeta uploads de forma pública
+  app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
+
+  // Validaciones con inyección
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
+  // Roles global guard
   app.useGlobalGuards(new RolesGuard(new Reflector()));
-  // Pipes globales de validación y transformación
+
+  // Validaciones globales
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // elimina propiedades que no están en los DTOs
-      forbidNonWhitelisted: true, // lanza error si se manda algo extra
-      transform: true, // convierte payloads a instancias de clases
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
